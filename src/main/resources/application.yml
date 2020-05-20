@@ -1,0 +1,119 @@
+# Tomcat
+server:
+  port: 8080
+# spring
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/seckill?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true&useSSL=false
+      username: root
+      password: 123456
+      initial-size: 100
+      max-active: 1000
+      min-idle: 500
+      max-wait: 60000
+      pool-prepared-statements: true
+      max-open-prepared-statements: 20
+      max-pool-prepared-statement-per-connection-size: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+      filter:
+        stat:
+          log-slow-sql: true
+          slow-sql-millis: 1000
+          merge-sql: false
+        wall:
+          config:
+            multi-statement-allow: true
+      validation-query: select 'x'
+  aop:
+    # false为启用jdk默认动态代理，true为cglib动态代理
+    proxy-target-class: true
+  redis:
+    database: 0
+    host: 127.0.0.1
+    port: 6379
+    # 密码（默认为空）
+    password:
+    # 连接超时时长（毫秒）
+    timeout: 100
+    jedis:
+      pool:
+        # 连接池最大连接数（使用负值表示没有限制）
+        max-active: 1000
+        # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-wait: 500
+        # 连接池中的最大空闲连接
+        max-idle: 500
+        # 连接池中的最小空闲连接
+        min-idle: 5
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        auto-startup: true
+        concurrency: 10
+        default-requeue-rejected: true
+        max-concurrency: 10
+        prefetch: 1
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000
+        max-attempts: 3
+        max-interval: 10000
+        multiplier: 1.0
+    virtual-host: /
+  resources:
+    add-mappings: true
+    chain:
+      cache: true
+      enabled: true
+      html-application-cache: true
+      compressed: true
+    static-locations: classpath:/static/
+  thymeleaf:
+    cache: false
+    enabled: true
+    encoding: UTF-8
+    mode: HTML5
+    prefix: classpath:/templates/
+    suffix: .html
+    servlet:
+      content-type: text/html
+# mybatis
+#mybatis:
+#  configuration:
+#    default-fetch-size: 100
+#    default-statement-timeout: 3000
+#    map-underscore-to-camel-case: true
+#  mapperLocations: classpath*:/mapper/**/*.xml
+#  type-aliases-package: com.shop.seckill.entity
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**.xml
+  #实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: com.shop.seckill.entity
+  global-config:
+    #数据库相关配置
+    db-config:
+      #主键类型  AUTO:"数据库ID自增", INPUT:"用户输入ID", ID_WORKER:"全局唯一ID (数字类型唯一ID)", UUID:"全局唯一ID UUID";
+      id-type: AUTO
+      logic-delete-value: 0
+      logic-not-delete-value: 1
+    banner: false
+  #原生配置
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    call-setters-on-nulls: true
