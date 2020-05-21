@@ -89,7 +89,7 @@ public class GoodsController {
             return html;
         }
 
-        //根据id查询商品详情
+        // 根据id查询商品详情
         GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
         model.addAttribute("goods", goods);
 
@@ -100,10 +100,10 @@ public class GoodsController {
         int seckillStatus = 0;
         int remainSeconds = 0;
 
-        if (now < startTime) {//秒杀还没开始，倒计时
+        if (now < startTime) {// 秒杀还没开始，倒计时
             seckillStatus = 0;
             remainSeconds = (int) ((startTime - now) / 1000);
-        } else if (now > endTime) {//秒杀已经结束
+        } else if (now > endTime) {// 秒杀已经结束
             seckillStatus = 2;
             remainSeconds = -1;
         } else {//秒杀进行中
@@ -130,7 +130,7 @@ public class GoodsController {
     @ResponseBody
     public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model, User user, @PathVariable("goodsId") long goodsId) {
 
-        //根据id查询商品详情
+        // 根据id查询商品详情
         GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
         model.addAttribute("goods", goods);
 
@@ -141,10 +141,10 @@ public class GoodsController {
         int seckillStatus = 0;
         int remainSeconds = 0;
 
-        if (now < startTime) {//秒杀还没开始，倒计时
+        if (now < startTime) {// 秒杀还没开始，倒计时
             seckillStatus = 0;
             remainSeconds = (int) ((startTime - now) / 1000);
-        } else if (now > endTime) {//秒杀已经结束
+        } else if (now > endTime) { //秒杀已经结束
             seckillStatus = 2;
             remainSeconds = -1;
         } else {//秒杀进行中

@@ -2,6 +2,9 @@ package com.shop.seckill.utils;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 public class MD5Util {
 
     public static String md5(String src) {
@@ -42,8 +45,7 @@ public class MD5Util {
     }
 
     public static void main(String[] args) {
-        System.out.println(inputPassToDbPass("123456", "1a2b3c4d"));
-
+//        System.out.println(inputPassToDbPass("123456", "1a2b3c4d"));
+        System.out.println('b' + 1);
     }
-
 }

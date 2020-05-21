@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 public class RateLimiterDemo {
     public static void main(String[] args) {
         RateLimiter rateLimiter = RateLimiter.create(2);
-        List<Runnable> tasks = new ArrayList<Runnable>();
+        List<Runnable> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             tasks.add(new UserRequest(i));
         }
