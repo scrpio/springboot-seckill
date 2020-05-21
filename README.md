@@ -1,4 +1,4 @@
-###项目的基本配置及背景
+##项目的基本配置及背景
 项目用的是 SpringBoot 2.1.5、thymeleaf 2.0.4、MyBatis 1.3.2、MySQL 8.0、最新版本的 Redis、Jmeter 压测工具和 RabbitMQ 消息中间件，其中 Redis、Jmeter 和 RabbitMQ 的相关配置是部署在虚拟机上，最后将项目打成 jar 包在虚拟机上运行。具体的环境配置过程稍微有点复杂，网上有具体博客可作参考，这里不加详述。
 
 本项目是一个秒杀系统，秒杀与其他业务最大的区别在于秒杀的瞬间：
@@ -9,14 +9,14 @@
 
 关于第二点，最常用的办法就是做页面静态化，也就是常说的前后端分离：把静态页面直接缓存到用户的浏览器端，所需要的数据从服务端接口动态获取。这样会大大节省网络的流量，再加上 CDN，一般不会有大问题。
 
-###如何减少DB的访问？
+##如何减少DB的访问？
 假如某个商品可秒杀的数量是10，那么在秒杀活动开始之前，把商品的 goodsId 和数量加载到 Redis 缓存。服务端收到请求的时候，首先预减一下 Redis 里面的数量，如果数量减到0随后的访问直接返回秒杀失败。也就是说，只有10个请求最终会去实际地请数据库。
 
 当然，如果我们的商品数比较多，10000件商品参与秒杀，10000 * 10 = 100000个并发去请求 DB，DB 的压力还是会很大，这里就用到另一个非常重要的组件：消息队列。我们不是把请求直接去访问 DB，而是先把请求写到消息队列，做一个缓存，然后再去缓慢地更新数据库。这样做以后，前端用户的请求可能不会立即得到响应是成功还是失败，很可能得到的是一个排队中的返回值。这个时候，需要客户端再去服务端轮询，因为我们不能保证一定就秒杀成功了。当服务端出队，生成订单以后，把用户 id 和商品 goodsId 写到缓存中，来应对客户端的轮询就可以了。
 
 这样处理以后，我们的应用是可以很简单的进行分布式横向扩展的，以应对更大的并发。
 
-###明文密码两次 MD5 加密
+##明文密码两次 MD5 加密
 通过两次 MD5 加密提高数据校验的安全性。第一次 MD5 是防止用户的明文密码在网络上传输，第二次 MD5 是防止网上相关的 MD5 解密反查。
 
 第一次 MD5 加密：用户端：password = MD5(明文 + 固定 salt -> “1a2b3c4d”)
@@ -25,7 +25,7 @@
 
 数据库中 user 表里插入的即为第二次加密的密码和随机 salt。
 
-###分布式 Session
+##分布式 Session
 每次登录都会生成一个 token 并把它加入到 Cookie 中，在跳转不同页面时，会把 token 对应的 user 从 Redis 中取出。
 
 改进：通过 UserArgumentResolver 封装之前加入 Cookie、由 token 得到 user 等一系列操作。
@@ -44,9 +44,8 @@ public Object resolveArgument(MethodParameter methodParameter, ModelAndViewConta
     }
 ```
 
-###秒杀功能开发
+##秒杀功能开发
 主要思路：
-
 1. 首先判断秒杀商品的库存，如果小于等于0，则直接返回秒杀失败
 2. 判断是否已经秒杀到了商品，即从数据库中查看该用户是否已经存在对应商品的订单，如果有则重复秒杀
 3. 减库存
@@ -79,8 +78,8 @@ public Object resolveArgument(MethodParameter methodParameter, ModelAndViewConta
 线程组 -> 监听器 -> 聚合报告
 显示压测的具体情况，包括并发量、Error、QPS 等信息。
 
-##自定义变量模拟多用户
-###Jmeter 自定义变量
+###自定义变量模拟多用户
+**Jmeter 自定义变量**<br/>
 线程组 -> 配置元件 -> CSV Data Set Config
 通过配置文件模拟多用户 token 访问页面，实现秒杀订单。
 配置文件格式为：userId,token
@@ -92,8 +91,10 @@ public Object resolveArgument(MethodParameter methodParameter, ModelAndViewConta
 ![](https://img-blog.csdnimg.cn/20190616200258839.png)
 秒杀下单压测结果：/miaosha/do_miaosha
 ![](https://img-blog.csdnimg.cn/20190616200324490.png)
+
 ###页面级高并发秒杀优化
 这一节主要讨论使用页面优化技术来提升秒杀系统性能，即利用缓存最大程度地减少对用户数据库的直接访问，并解决超卖现象。
+
 ###商品列表页缓存实现
 最开始对于商品的查询优化是将 user 和 goodsList 直接加入到 model 中，然后通过动态渲染模板在浏览器端展示出来，接下来考虑如何做页面缓存。
 先看修改后的代码：
@@ -205,7 +206,8 @@ RabbitMQ 整体上是一个生产者与消费者模型，主要负责接收、�
 
 RabbitMQ 交换机有以下几种类型：fanout、direct、topic、headers 这四种，但 headers 类型的交换器性能比较差，一般不推荐。
 
-本项目中用到的是 direct 模式，具体代码详见 GitHub。
+本项目中用到的是 direct 模式。
+
 ###Redis 预减库存和RabbitMQ 异步下单
 1. 在系统初始化的时候，把商品库存的数量预加载到 Redis 中(在 afterPropertiesSet 方法中实现预加载过程)
 2. 在收到用户秒杀请求后，通过 Redis 预减库存，若库存不足则直接返回秒杀失败，并标记该 goods 已经秒杀完毕；如果库存大于0则入队，并返回正在排队中
@@ -252,7 +254,7 @@ public ResultUtil<Integer> miaosha(Model model, MiaoshaUser user,
 ##第二次压测
 为了尽可能保证两次压测结果对比的公平性，内存、CPU配置保持不变，多变量配置文件与第一次压测完全相同。
 
-**商品查询与秒杀下单压测**
+###商品查询与秒杀下单压测
 加了页面缓存和对象缓存后，商品查询压测结果：/goods/to_list
 ![](https://img-blog.csdnimg.cn/20190616200359868.png)
 通过 RabbitMQ 实现异步下单后，秒杀下单压测结果：/miaosha/do_miaosha
