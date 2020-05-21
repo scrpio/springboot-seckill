@@ -14,7 +14,6 @@ import com.shop.seckill.service.OrderService;
 import com.shop.seckill.service.SeckillService;
 import com.shop.seckill.utils.RedisUtils;
 import com.shop.seckill.vo.GoodsVo;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -107,10 +106,10 @@ public class SeckillController implements InitializingBean {
             return Result.error(CodeMsg.SECKILL_OVER);
         }
         //预减库存
-        long stock = redisUtils.decr(GoodsKey.getGoodsStock, "" + goodsId);//10
+        long stock = redisUtils.decr(GoodsKey.getGoodsStock, "" + goodsId);
         if (stock < 0) {
             afterPropertiesSet();
-            long stock2 = redisUtils.decr(GoodsKey.getGoodsStock, "" + goodsId);//10
+            long stock2 = redisUtils.decr(GoodsKey.getGoodsStock, "" + goodsId);
             if (stock2 < 0) {
                 localOverMap.put(goodsId, true);
                 return Result.error(CodeMsg.SECKILL_OVER);
@@ -136,8 +135,7 @@ public class SeckillController implements InitializingBean {
      */
     @RequestMapping(value = "/result", method = RequestMethod.GET)
     @ResponseBody
-    public Result<Long> seckillResult(Model model, User user,
-                                      @RequestParam("goodsId") long goodsId) {
+    public Result<Long> seckillResult(Model model, User user, @RequestParam("goodsId") long goodsId) {
         model.addAttribute("user", user);
         if (user == null) {
             return Result.error(CodeMsg.SESSION_ERROR);
