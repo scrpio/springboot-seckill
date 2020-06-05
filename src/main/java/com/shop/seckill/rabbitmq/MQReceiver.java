@@ -5,7 +5,7 @@ import com.shop.seckill.entity.User;
 import com.shop.seckill.service.GoodsService;
 import com.shop.seckill.service.OrderService;
 import com.shop.seckill.service.SeckillService;
-import com.shop.seckill.utils.RedisUtils;
+import com.shop.seckill.utils.RedisUtil;
 import com.shop.seckill.vo.GoodsVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,24 +27,24 @@ public class MQReceiver {
     SeckillService seckillService;
 
     @Autowired
-    private RedisUtils redisUtils;
+    private RedisUtil redisUtil;
 
-    @RabbitListener(queues=MQConfig.QUEUE)
-    public void receive(String message){
-        log.info("receive message:"+message);
-        SeckillMessage m = redisUtils.stringToBean(message, SeckillMessage.class);
+    @RabbitListener(queues = MQConfig.QUEUE)
+    public void receive(String message) {
+        log.info("receive message:" + message);
+        SeckillMessage m = redisUtil.stringToBean(message, SeckillMessage.class);
         User user = m.getUser();
         long goodsId = m.getGoodsId();
 
         GoodsVo goodsVo = goodsService.getGoodsVoByGoodsId(goodsId);
         int stock = goodsVo.getStockCount();
-        if(stock <= 0){
+        if (stock <= 0) {
             return;
         }
 
         //判断重复秒杀
         OrderSecKill order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
-        if(order != null) {
+        if (order != null) {
             return;
         }
 

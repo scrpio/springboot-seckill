@@ -25,7 +25,9 @@ import java.util.List;
 @Service
 public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements GoodsService {
 
-    //乐观锁冲突最大重试次数
+    /**
+     * 乐观锁冲突最大重试次数
+     */
     private static final int DEFAULT_MAX_RETRIES = 5;
 
     @Autowired
@@ -47,21 +49,22 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
     public boolean reduceStock(GoodsVo goods) {
         int numAttempts = 0;
         int ret = 0;
-        GoodsSecKill sg = new GoodsSecKill();
-        sg.setGoodsId(goods.getId());
-        sg.setVersion(goods.getVersion());
+        GoodsSecKill goodsSecKill = new GoodsSecKill();
+        goodsSecKill.setGoodsId(goods.getId());
+        goodsSecKill.setVersion(goods.getVersion());
         do {
             numAttempts++;
             try {
                 QueryWrapper<GoodsSecKill> queryWrapper = new QueryWrapper<>();
                 queryWrapper.eq("goods_id", goods.getId());
-                sg.setVersion(goodsSecKillMapper.selectOne(queryWrapper).getVersion());
-                ret = goodsSecKillMapper.reduceStockByVersion(sg);
+                goodsSecKill.setVersion(goodsSecKillMapper.selectOne(queryWrapper).getVersion());
+                ret = goodsSecKillMapper.reduceStockByVersion(goodsSecKill);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            if (ret != 0)
+            if (ret != 0){
                 break;
+            }
         } while (numAttempts < DEFAULT_MAX_RETRIES);
 
         return ret > 0;

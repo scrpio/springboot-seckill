@@ -8,7 +8,7 @@ import com.shop.seckill.entity.User;
 import com.shop.seckill.redis.OrderKey;
 import com.shop.seckill.service.OrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.shop.seckill.utils.RedisUtils;
+import com.shop.seckill.utils.RedisUtil;
 import com.shop.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,11 +32,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderSecKillMapper, OrderSecKi
     private OrderSecKillMapper orderSecKillMapper;
 
     @Autowired
-    private RedisUtils redisUtils;
+    private RedisUtil redisUtil;
 
     @Override
     public OrderSecKill getOrderByUserIdGoodsId(long userId, long goodsId) {
-        return redisUtils.get(OrderKey.getSeckillOrderByUidGid, "" + userId + "_" + goodsId, OrderSecKill.class);
+        return redisUtil.get(OrderKey.getSeckillOrderByUidGid, "" + userId + "_" + goodsId, OrderSecKill.class);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderSecKillMapper, OrderSecKi
         orderSecKill.setUserId(user.getId());
         orderSecKillMapper.insert(orderSecKill);
 
-        redisUtils.set(OrderKey.getSeckillOrderByUidGid, "" + user.getId() + "_" + goods.getId(), orderSecKill);
+        redisUtil.set(OrderKey.getSeckillOrderByUidGid, "" + user.getId() + "_" + goods.getId(), orderSecKill);
 
         return order;
     }

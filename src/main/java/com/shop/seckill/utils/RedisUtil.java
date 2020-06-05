@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Component
-public class RedisUtils {
+public class RedisUtil {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     @Autowired
@@ -30,7 +30,7 @@ public class RedisUtils {
      * 获取redis实例
      */
     public <T> T get(KeyPrefix prefix, String key, Class<T> clazz) {
-        //对key增加前缀，即可用于分类，也避免key重复
+        // 对key增加前缀，即可用于分类，也避免key重复
         String realKey = prefix.getPrefix() + key;
         String str = valueOperations.get(realKey);
         return stringToBean(str, clazz);
@@ -45,7 +45,8 @@ public class RedisUtils {
             return false;
         }
         String realKey = prefix.getPrefix() + key;
-        int seconds = prefix.expireSeconds();//获取过期时间
+        // 获取过期时间
+        int seconds = prefix.expireSeconds();
         if (seconds <= 0) {
             valueOperations.set(realKey, str);
         } else {

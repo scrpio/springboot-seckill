@@ -17,6 +17,11 @@ import javax.servlet.http.HttpServletResponse;
 public interface UserService extends IService<User> {
     String COOKIE_NAME_TOKEN = "token";
 
+    /**
+     * 获取用户信息
+     * @param id
+     * @return
+     */
     User getUserById(long id);
 
     /**

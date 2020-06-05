@@ -5,7 +5,7 @@ import com.shop.seckill.entity.User;
 import com.shop.seckill.redis.GoodsKey;
 import com.shop.seckill.result.Result;
 import com.shop.seckill.service.GoodsService;
-import com.shop.seckill.utils.RedisUtils;
+import com.shop.seckill.utils.RedisUtil;
 import com.shop.seckill.vo.GoodsDetailVo;
 import com.shop.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +39,7 @@ public class GoodsController {
     private GoodsService goodsService;
 
     @Autowired
-    private RedisUtils redisUtils;
+    private RedisUtil redisUtil;
 
     @Autowired
     private ThymeleafViewResolver thymeleafViewResolver;
@@ -53,8 +53,8 @@ public class GoodsController {
     @ResponseBody
     public String list(HttpServletRequest request, HttpServletResponse response, Model model, User user) {
 
-        //取缓存
-        String html = redisUtils.get(GoodsKey.getGoodsList, "", String.class);
+        // 取缓存
+        String html = redisUtil.get(GoodsKey.getGoodsList, "", String.class);
         if (!StringUtils.isEmpty(html)) {
             return html;
         }
@@ -62,15 +62,15 @@ public class GoodsController {
         model.addAttribute("user", user);
         model.addAttribute("goodsList", goodsList);
 
-        //手动渲染
+        // 手动渲染
         IWebContext ctx = new WebContext(request, response,
                 request.getServletContext(), request.getLocale(), model.asMap());
         html = thymeleafViewResolver.getTemplateEngine().process("goods_list", ctx);
 
         if (!StringUtils.isEmpty(html)) {
-            redisUtils.set(GoodsKey.getGoodsList, "", html);
+            redisUtil.set(GoodsKey.getGoodsList, "", html);
         }
-        //结果输出
+        // 结果输出
         return html;
     }
 
@@ -84,7 +84,7 @@ public class GoodsController {
         model.addAttribute("user", user);
 
         //取缓存
-        String html = redisUtils.get(GoodsKey.getGoodsDetail, "" + goodsId, String.class);
+        String html = redisUtil.get(GoodsKey.getGoodsDetail, "" + goodsId, String.class);
         if (!StringUtils.isEmpty(html)) {
             return html;
         }
@@ -99,26 +99,28 @@ public class GoodsController {
 
         int seckillStatus = 0;
         int remainSeconds = 0;
-
-        if (now < startTime) {// 秒杀还没开始，倒计时
+        if (now < startTime) {
+            // 秒杀还没开始，倒计时
             seckillStatus = 0;
             remainSeconds = (int) ((startTime - now) / 1000);
-        } else if (now > endTime) {// 秒杀已经结束
+        } else if (now > endTime) {
+            // 秒杀已经结束
             seckillStatus = 2;
             remainSeconds = -1;
-        } else {//秒杀进行中
+        } else {
+            // 秒杀进行中
             seckillStatus = 1;
             remainSeconds = 0;
         }
         model.addAttribute("seckillStatus", seckillStatus);
         model.addAttribute("remainSeconds", remainSeconds);
 
-        //手动渲染
+        // 手动渲染
         IWebContext ctx = new WebContext(request, response,
                 request.getServletContext(), request.getLocale(), model.asMap());
         html = thymeleafViewResolver.getTemplateEngine().process("goods_detail", ctx);
         if (!StringUtils.isEmpty(html)) {
-            redisUtils.set(GoodsKey.getGoodsDetail, "" + goodsId, html);
+            redisUtil.set(GoodsKey.getGoodsDetail, "" + goodsId, html);
         }
         return html;
     }
@@ -141,13 +143,16 @@ public class GoodsController {
         int seckillStatus = 0;
         int remainSeconds = 0;
 
-        if (now < startTime) {// 秒杀还没开始，倒计时
+        if (now < startTime) {
+            // 秒杀还没开始，倒计时
             seckillStatus = 0;
             remainSeconds = (int) ((startTime - now) / 1000);
-        } else if (now > endTime) { //秒杀已经结束
+        } else if (now > endTime) {
+            // 秒杀已经结束
             seckillStatus = 2;
             remainSeconds = -1;
-        } else {//秒杀进行中
+        } else {
+            // 秒杀进行中
             seckillStatus = 1;
             remainSeconds = 0;
         }

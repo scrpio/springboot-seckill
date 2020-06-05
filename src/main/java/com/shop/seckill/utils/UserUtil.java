@@ -14,6 +14,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+/**
+ * @author scorpio
+ */
 public class UserUtil {
 
     private static void createUser(int count) throws Exception {

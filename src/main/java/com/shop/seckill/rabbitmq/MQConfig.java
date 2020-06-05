@@ -46,7 +46,7 @@ public class MQConfig {
         return new TopicExchange(TOPIC_EXCHANGE);
     }
 
-    //绑定
+    // 绑定
     @Bean
     public Binding topicBinding1() {
         return BindingBuilder.bind(topicQueue1()).to(topicExchange()).with("topic.key1");

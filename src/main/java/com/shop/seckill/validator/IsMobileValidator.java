@@ -8,12 +8,15 @@ import javax.validation.ConstraintValidatorContext;
 
 /**
  * 自定义手机格式校验器
+ * @author scorpio
  */
 public class IsMobileValidator implements ConstraintValidator<IsMobile, String> {
 
     private boolean required = false;
 
-    //初始化
+    /**
+     * 初始化
+     */
     @Override
     public void initialize(IsMobile isMobile) {
         required = isMobile.required();

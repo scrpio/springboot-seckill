@@ -4,6 +4,7 @@ import java.util.UUID;
 
 /**
  * 唯一id生成类
+ * @author scorpio
  */
 public class UUIDUtil {
 

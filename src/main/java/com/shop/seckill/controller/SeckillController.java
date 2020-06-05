@@ -12,7 +12,7 @@ import com.shop.seckill.result.Result;
 import com.shop.seckill.service.GoodsService;
 import com.shop.seckill.service.OrderService;
 import com.shop.seckill.service.SeckillService;
-import com.shop.seckill.utils.RedisUtils;
+import com.shop.seckill.utils.RedisUtil;
 import com.shop.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
@@ -52,13 +52,17 @@ public class SeckillController implements InitializingBean {
     private MQSender sender;
 
     @Autowired
-    private RedisUtils redisUtils;
+    private RedisUtil redisUtil;
 
-    //基于令牌桶算法的限流实现类
+    /**
+     * 基于令牌桶算法的限流实现类
+     */
     RateLimiter rateLimiter = RateLimiter.create(10);
 
-    //做标记，判断该商品是否被处理过了
-    private HashMap<Long, Boolean> localOverMap = new HashMap<Long, Boolean>();
+    /**
+     * 做标记，判断该商品是否被处理过了
+     */
+    private HashMap<Long, Boolean> localOverMap = new HashMap<>();
 
     /**
      * 系统初始化,将商品信息加载到redis和本地内存
@@ -70,8 +74,8 @@ public class SeckillController implements InitializingBean {
             return;
         }
         for (GoodsVo goods : goodsVoList) {
-            redisUtils.set(GoodsKey.getGoodsStock, "" + goods.getId(), goods.getStockCount());
-            //初始化商品都是没有处理过的
+            redisUtil.set(GoodsKey.getGoodsStock, "" + goods.getId(), goods.getStockCount());
+            // 初始化商品都是没有处理过的
             localOverMap.put(goods.getId(), false);
         }
     }
@@ -100,32 +104,33 @@ public class SeckillController implements InitializingBean {
             return Result.error(CodeMsg.SESSION_ERROR);
         }
         model.addAttribute("user", user);
-        //内存标记，减少redis访问
+        // 内存标记，减少redis访问
         boolean over = localOverMap.get(goodsId);
         if (over) {
             return Result.error(CodeMsg.SECKILL_OVER);
         }
-        //预减库存
-        long stock = redisUtils.decr(GoodsKey.getGoodsStock, "" + goodsId);
+        // 预减库存
+        long stock = redisUtil.decr(GoodsKey.getGoodsStock, "" + goodsId);
         if (stock < 0) {
             afterPropertiesSet();
-            long stock2 = redisUtils.decr(GoodsKey.getGoodsStock, "" + goodsId);
+            long stock2 = redisUtil.decr(GoodsKey.getGoodsStock, "" + goodsId);
             if (stock2 < 0) {
                 localOverMap.put(goodsId, true);
                 return Result.error(CodeMsg.SECKILL_OVER);
             }
         }
-        //判断重复秒杀
+        // 判断重复秒杀
         OrderSecKill order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
         if (order != null) {
             return Result.error(CodeMsg.REPEATE_SECKILL);
         }
-        //入队
+        // 入队
         SeckillMessage message = new SeckillMessage();
         message.setUser(user);
         message.setGoodsId(goodsId);
         sender.sendSeckillMessage(message);
-        return Result.success(0);//排队中
+        // 排队中
+        return Result.success(0);
     }
 
     /**

@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+/**
+ * @author scorpio
+ */
 @Controller
 @RequestMapping("/login")
 public class LoginController {

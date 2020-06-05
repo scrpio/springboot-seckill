@@ -6,18 +6,20 @@ import java.lang.annotation.*;
 
 /**
  * 自定义手机格式校验注解
+ *
+ * @author scorpio
  */
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.ANNOTATION_TYPE, ElementType.CONSTRUCTOR, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Constraint(
-        validatedBy = {IsMobileValidator.class}
-)//引进校验器
+// 引进校验器
+@Constraint(validatedBy = {IsMobileValidator.class})
 public @interface IsMobile {
+    // 默认不能为空
+    boolean required() default true;
 
-    boolean required() default true;//默认不能为空
-
-    String message() default "手机号码格式错误";//校验不通过输出信息
+    // 校验不通过输出信息
+    String message() default "手机号码格式错误";
 
     Class<?>[] groups() default {};
 

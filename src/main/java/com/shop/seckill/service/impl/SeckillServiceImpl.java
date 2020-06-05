@@ -7,7 +7,7 @@ import com.shop.seckill.redis.SeckillKey;
 import com.shop.seckill.service.GoodsService;
 import com.shop.seckill.service.OrderService;
 import com.shop.seckill.service.SeckillService;
-import com.shop.seckill.utils.RedisUtils;
+import com.shop.seckill.utils.RedisUtil;
 import com.shop.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,7 +22,7 @@ public class SeckillServiceImpl implements SeckillService {
     private OrderService orderService;
 
     @Autowired
-    private RedisUtils redisUtils;
+    private RedisUtil redisUtil;
 
     @Override
     public Order seckill(User user, GoodsVo goods) {
@@ -53,10 +53,10 @@ public class SeckillServiceImpl implements SeckillService {
     }
 
     private void setGoodsOver(Long goodsId) {
-        redisUtils.set(SeckillKey.isGoodsOver, "" + goodsId, true);
+        redisUtil.set(SeckillKey.isGoodsOver, "" + goodsId, true);
     }
 
     private boolean getGoodsOver(long goodsId) {
-        return redisUtils.exists(SeckillKey.isGoodsOver, "" + goodsId);
+        return redisUtil.exists(SeckillKey.isGoodsOver, "" + goodsId);
     }
 }

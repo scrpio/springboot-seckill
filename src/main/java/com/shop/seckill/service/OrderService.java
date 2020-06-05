@@ -16,8 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
  * @since 2020-05-19
  */
 public interface OrderService extends IService<OrderSecKill> {
+    /**
+     * 获取秒杀订单
+     * @param userId
+     * @param goodsId
+     * @return
+     */
     OrderSecKill getOrderByUserIdGoodsId(long userId, long goodsId);
 
+    /**
+     * 获取订单
+     * @param orderId
+     * @return
+     */
     Order getOrderById(long orderId);
 
     /**
@@ -26,6 +37,6 @@ public interface OrderService extends IService<OrderSecKill> {
      * @param goods
      * @return
      */
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     Order createOrder(User user, GoodsVo goods);
 }
