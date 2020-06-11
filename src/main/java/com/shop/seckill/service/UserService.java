@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.shop.seckill.vo.LoginVo;
 
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * <p>
@@ -26,6 +27,10 @@ public interface UserService extends IService<User> {
 
     /**
      * 典型缓存同步场景：更新密码
+     * @param token
+     * @param id
+     * @param formPass
+     * @return
      */
     boolean updatePassword(String token, long id, String formPass);
 
@@ -41,4 +46,17 @@ public interface UserService extends IService<User> {
      * 根据token获取用户信息
      */
     User getUserByToken(HttpServletResponse response, String token);
+
+    /**
+     * 所有用户
+     * @return
+     */
+    List<User> getUserList();
+
+    /**
+     * 根据昵称获取用户
+     * @param nickname
+     * @return
+     */
+    User getUserByName(String nickname);
 }

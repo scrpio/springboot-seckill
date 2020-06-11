@@ -93,7 +93,7 @@ spring:
     servlet:
       content-type: text/html
 # mybatis
-#mybatis:
+# mybatis:
 #  configuration:
 #    default-fetch-size: 100
 #    default-statement-timeout: 3000
@@ -102,18 +102,24 @@ spring:
 #  type-aliases-package: com.shop.seckill.entity
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**.xml
-  #实体扫描，多个package用逗号或者分号分隔
+  # 实体扫描，多个package用逗号或者分号分隔
   typeAliasesPackage: com.shop.seckill.entity
   global-config:
-    #数据库相关配置
+    # 数据库相关配置
     db-config:
-      #主键类型  AUTO:"数据库ID自增", INPUT:"用户输入ID", ID_WORKER:"全局唯一ID (数字类型唯一ID)", UUID:"全局唯一ID UUID";
+      # 主键类型  AUTO:"数据库ID自增", INPUT:"用户输入ID", ID_WORKER:"全局唯一ID (数字类型唯一ID)", UUID:"全局唯一ID UUID";
       id-type: AUTO
       logic-delete-value: 0
       logic-not-delete-value: 1
     banner: false
-  #原生配置
+  # 原生配置
   configuration:
     map-underscore-to-camel-case: true
     cache-enabled: false
     call-setters-on-nulls: true
+# 日志
+logging:
+  level:
+    root: info
+  pattern:
+    console: "%d - %msg%n"

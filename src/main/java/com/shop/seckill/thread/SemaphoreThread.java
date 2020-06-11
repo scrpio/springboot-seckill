@@ -1,5 +1,7 @@
 package com.shop.seckill.thread;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Random;
 import java.util.concurrent.*;
 
@@ -16,12 +18,35 @@ import java.util.concurrent.*;
  * 等待买票=线程阻塞，不能执行
  * <p>
  * 解决方案：信号量 Semaphore
+ * acquire()：获取信号量许可
+ * release()：释放信号量许可证
  * 应用场景：用于流量控制，限流
  *
  * @author scorpio
  */
 public class SemaphoreThread {
-    class MyTask implements Runnable {
+    /**
+     * 线程池的基本大小，如果大于0，即使本地任务执行完也不会被销毁
+     */
+    static int corePoolSize = 10;
+    /**
+     * 线程池最大数量
+     */
+    static int maximumPoolSizeSize = 100;
+    /**
+     * 线程活动保持时间，当空闲时间达到该值时，线程会被销毁，只剩下 corePoolSize 个线程位置
+     */
+    static long keepAliveTime = 1;
+    /**
+     * 任务队列，当请求的线程数大于 corePoolSize 时，线程进入该阻塞队列
+     */
+    static LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(1024);
+    /**
+     * 线程工厂，用来生产一组相同任务的线程，同时也可以通过它增加前缀名，虚拟机栈分析时更清晰
+     */
+    static ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("thread-pool-%d").build();
+
+    static class MyTask implements Runnable {
         // 信号量
         private Semaphore semaphore;
         // 第几个用户
@@ -52,21 +77,16 @@ public class SemaphoreThread {
         }
     }
 
-    private void execute() {
-        // 定义窗口个数
-        final Semaphore semaphore = new Semaphore(2);
+    public static void main(String[] args) {
+        Semaphore semaphore = new Semaphore(2);
         // 线程池
-        ExecutorService threadPool = Executors.newCachedThreadPool();
+        ExecutorService threadPool = new ThreadPoolExecutor(corePoolSize, maximumPoolSizeSize, keepAliveTime, TimeUnit.SECONDS, workQueue, threadFactory);
+
         // 模拟20个用户
         for (int i = 1; i < 21; i++) {
             threadPool.execute(new MyTask(semaphore, i));
         }
         // 关闭线程池
         threadPool.shutdown();
-    }
-
-    public static void main(String[] args) {
-        SemaphoreThread semaphoreThread = new SemaphoreThread();
-        semaphoreThread.execute();
     }
 }

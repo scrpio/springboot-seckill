@@ -4,7 +4,11 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+/**
+ * @author scorpio
+ */
+@SpringBootApplication(scanBasePackages = "com.shop.seckill")
+@MapperScan("com.shop.seckill.dao")
 public class SpringbootSeckillApplication {
 
     public static void main(String[] args) {

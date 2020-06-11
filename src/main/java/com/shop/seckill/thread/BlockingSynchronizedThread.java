@@ -1,7 +1,9 @@
 package com.shop.seckill.thread;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Random;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 /**
  * LinkedBlockingQueue() : 创建一个容量为Integer.MAX_VALUE的LinkedBlockingQueue
@@ -17,6 +19,27 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author scorpio
  */
 public class BlockingSynchronizedThread {
+    /**
+     * 线程池的基本大小，如果大于0，即使本地任务执行完也不会被销毁
+     */
+    static int corePoolSize = 10;
+    /**
+     * 线程池最大数量
+     */
+    static int maximumPoolSizeSize = 100;
+    /**
+     * 线程活动保持时间，当空闲时间达到该值时，线程会被销毁，只剩下 corePoolSize 个线程位置
+     */
+    static long keepAliveTime = 1;
+    /**
+     * 任务队列，当请求的线程数大于 corePoolSize 时，线程进入该阻塞队列
+     */
+    static LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(1024);
+    /**
+     * 线程工厂，用来生产一组相同任务的线程，同时也可以通过它增加前缀名，虚拟机栈分析时更清晰
+     */
+    static ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("thread-pool-%d").build();
+
     /**
      * 定义一个阻塞队列用来存储生产出来的商品
      */
@@ -38,13 +61,13 @@ public class BlockingSynchronizedThread {
             if (newFlag == 0) {
                 for (int i = 0; i < size; i++) {
                     int b = new Random().nextInt(255);
-                    System.out.println("启动线程0 -> 生产商品：" + b + "号");
+                    System.out.println(newFlag + "启动线程 -> 生产商品：" + b + "号");
                     try {
                         queue.put(b);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    System.out.println("启动线程0 -> 仓库中还有商品：" + queue.size() + "个");
+                    System.out.println(newFlag + "启动线程 -> 仓库中还有商品：" + queue.size() + "个");
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
@@ -55,11 +78,11 @@ public class BlockingSynchronizedThread {
                 for (int i = 0; i < size / 2; i++) {
                     try {
                         int n = queue.take();
-                        System.out.println("启动线程1 -> 消费者买去了" + n + "号商品");
+                        System.out.println(newFlag + "启动线程 -> 消费者买去了" + n + "号商品");
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    System.out.println("启动线程1 -> 仓库中还有商品：" + queue.size() + "个");
+                    System.out.println(newFlag + "启动线程 -> 仓库中还有商品：" + queue.size() + "个");
                     try {
                         Thread.sleep(100);
                     } catch (Exception e) {
@@ -73,9 +96,10 @@ public class BlockingSynchronizedThread {
     public static void main(String[] args) {
         BlockingSynchronizedThread bst = new BlockingSynchronizedThread();
         LinkBlockThread lbt = bst.new LinkBlockThread();
-        Thread thread1 = new Thread(lbt);
-        Thread thread2 = new Thread(lbt);
-        thread1.start();
-        thread2.start();
+        // 线程池
+        ExecutorService threadPool = new ThreadPoolExecutor(corePoolSize, maximumPoolSizeSize, keepAliveTime, TimeUnit.SECONDS, workQueue, threadFactory);
+        threadPool.execute(lbt);
+        threadPool.execute(lbt);
+        threadPool.shutdown();
     }
 }

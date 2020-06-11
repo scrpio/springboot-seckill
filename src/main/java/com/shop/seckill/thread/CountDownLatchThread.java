@@ -7,7 +7,9 @@ import java.util.concurrent.*;
 
 /**
  * 比如有一个任务A，他需要等待其他几个任务(BCD)都执行完毕之后才能执行这个任务
- * 解决方案：ConutDownLatch 倒计时器
+ * 解决方案：CountDownLatch 倒计时器
+ * await()：阻塞当前线程，等待其他线程执行完成，直到计数器计数值减到0
+ * countDown()：负责计数器的减一
  * 应用场景：可以用于模拟高并发
  * <p>
  * CountDownLatch 与 CyclicBarrier 区别：

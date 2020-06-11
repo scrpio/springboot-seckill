@@ -1,9 +1,9 @@
 package com.shop.seckill.thread;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import java.util.Random;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 /**
  * 公司周末组织去聚餐，首先各自从家里出发到聚餐地点，当所有人全部到齐之后，才开始吃饭
@@ -16,6 +16,27 @@ import java.util.concurrent.Executors;
  * @author scorpio
  */
 public class CyclicBarrierThread {
+    /**
+     * 线程池的基本大小，如果大于0，即使本地任务执行完也不会被销毁
+     */
+    static int corePoolSize = 10;
+    /**
+     * 线程池最大数量
+     */
+    static int maximumPoolSizeSize = 100;
+    /**
+     * 线程活动保持时间，当空闲时间达到该值时，线程会被销毁，只剩下 corePoolSize 个线程位置
+     */
+    static long keepAliveTime = 1;
+    /**
+     * 任务队列，当请求的线程数大于 corePoolSize 时，线程进入该阻塞队列
+     */
+    static LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(1024);
+    /**
+     * 线程工厂，用来生产一组相同任务的线程，同时也可以通过它增加前缀名，虚拟机栈分析时更清晰
+     */
+    static ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("thread-pool-%d").build();
+
     public static void main(String[] args) {
         final CyclicBarrier cyclicBarrier = new CyclicBarrier(3, () -> {
             // 在吃饭之前做点别的事情
@@ -27,10 +48,11 @@ public class CyclicBarrierThread {
             }
         });
         // 线程池
-        ExecutorService threadPool = Executors.newCachedThreadPool();
+        ExecutorService threadPool = new ThreadPoolExecutor(corePoolSize, maximumPoolSizeSize, keepAliveTime, TimeUnit.SECONDS, workQueue, threadFactory);
+
         // 模拟3个用户
-        for (int i = 0; i < 3; i++) {
-            final int user = i + 1;
+        for (int i = 1; i <= 3; i++) {
+            final int user = i;
             Runnable runnable = () -> {
                 try {
                     // 模拟每个人来的时间各不一样

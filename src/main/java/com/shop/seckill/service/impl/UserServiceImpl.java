@@ -1,6 +1,10 @@
 package com.shop.seckill.service.impl;
 
 import com.alibaba.druid.util.StringUtils;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.google.common.base.Charsets;
+import com.google.common.hash.BloomFilter;
+import com.google.common.hash.Funnels;
 import com.shop.seckill.entity.User;
 import com.shop.seckill.dao.UserMapper;
 import com.shop.seckill.exception.GlobalException;
@@ -17,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * <p>
@@ -35,19 +40,35 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Autowired
     private RedisUtil redisUtil;
 
+    BloomFilter bloomFilter;
+
     @Override
     public User getUserById(long id) {
         // 对象缓存
         User user = redisUtil.get(UserKey.getById, "" + id, User.class);
-        if (user != null) {
-            return user;
+        if (bloomFilter.mightContain(id)){
+            if (user != null) {
+                return user;
+            }else {
+                // 双层检测加锁
+                synchronized (this) {
+                    user = redisUtil.get(UserKey.getById, "" + id, User.class);
+                    if (user == null) {
+                        // 取数据库
+                        user = userMapper.selectById(id);
+                        if (user != null) {
+                            // 把数据库查询出来的数据放入redis
+                            redisUtil.set(UserKey.getById, "" + id, user);
+                        } else {
+                            System.out.println("发生缓存穿透");
+                        }
+                    }
+                }
+            }
+        }else {
+            System.out.println("该用户不存在！");
         }
-        // 取数据库
-        user = userMapper.selectById(id);
-        // 再存入缓存
-        if (user != null) {
-            redisUtil.set(UserKey.getById, "" + id, user);
-        }
+
         return user;
     }
 
@@ -126,5 +147,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             addCookie(response, token, user);
         }
         return user;
+    }
+
+    @Override
+    public List<User> getUserList() {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        // 从数据库查询所有用户数据
+        List<User> list = userMapper.selectList(queryWrapper);
+        // 从数据库里拿到的数据加载到布隆过滤器
+        bloomFilter = BloomFilter.create(Funnels.stringFunnel(Charsets.UTF_8), list.size());
+        // 把数据放到布隆过滤器里
+        for (User user : list) {
+            bloomFilter.put(user.getId());
+        }
+        return list;
+    }
+
+    @Override
+    public User getUserByName(String nickname) {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("nickname", nickname);
+
+        return userMapper.selectOne(queryWrapper);
     }
 }

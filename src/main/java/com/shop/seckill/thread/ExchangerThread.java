@@ -1,8 +1,8 @@
 package com.shop.seckill.thread;
 
-import java.util.concurrent.Exchanger;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import java.util.concurrent.*;
 
 /**
  * 假如A团伙绑了B，告诉B的家人C，需要1000万赎人，A与C达成一致意见到某一个地点交换人质，
@@ -15,11 +15,33 @@ import java.util.concurrent.Executors;
  * @author scorpio
  */
 public class ExchangerThread {
+    /**
+     * 线程池的基本大小，如果大于0，即使本地任务执行完也不会被销毁
+     */
+    static int corePoolSize = 10;
+    /**
+     * 线程池最大数量
+     */
+    static int maximumPoolSizeSize = 100;
+    /**
+     * 线程活动保持时间，当空闲时间达到该值时，线程会被销毁，只剩下 corePoolSize 个线程位置
+     */
+    static long keepAliveTime = 1;
+    /**
+     * 任务队列，当请求的线程数大于 corePoolSize 时，线程进入该阻塞队列
+     */
+    static LinkedBlockingQueue<Runnable> workQueue = new LinkedBlockingQueue<>(1024);
+    /**
+     * 线程工厂，用来生产一组相同任务的线程，同时也可以通过它增加前缀名，虚拟机栈分析时更清晰
+     */
+    static ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("thread-pool-%d").build();
+
     public static void main(String[] args) {
         // 定义交换器，交换String类型的数据，当然是可以为任意类型
         Exchanger<String> exchanger = new Exchanger<>();
-        // 定义线程池
-        ExecutorService threadPool = Executors.newCachedThreadPool();
+        // 线程池
+        ExecutorService threadPool = new ThreadPoolExecutor(corePoolSize, maximumPoolSizeSize, keepAliveTime, TimeUnit.SECONDS, workQueue, threadFactory);
+
         // 绑架者A
         threadPool.execute(() -> {
             try {

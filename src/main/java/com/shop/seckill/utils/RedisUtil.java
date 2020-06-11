@@ -1,15 +1,28 @@
 package com.shop.seckill.utils;
 
 import com.alibaba.fastjson.JSON;
-import com.google.gson.Gson;
+import com.google.common.base.Preconditions;
+import com.google.common.hash.BloomFilter;
+import com.shop.seckill.entity.User;
+import com.shop.seckill.redis.BloomFilterHelper;
 import com.shop.seckill.redis.KeyPrefix;
+import com.shop.seckill.redis.UserKey;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.*;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+/**
+ * @author scorpio
+ */
 @Component
 public class RedisUtil {
     @Autowired
@@ -19,12 +32,14 @@ public class RedisUtil {
     /**
      * 默认过期时长，单位：秒
      */
-    public final long DEFAULT_EXPIRE = 60 * 60 * 24;
+    public static final long DEFAULT_EXPIRE = 60 * 60 * 24;
+
     /**
      * 不设置过期时长
      */
-    public final long NOT_EXPIRE = -1;
-    private final Gson gson = new Gson();
+    public static final long NOT_EXPIRE = -1;
+
+    public static final String KEY_MUTEX = "mutex-key:";
 
     /**
      * 获取redis实例
@@ -93,63 +108,9 @@ public class RedisUtil {
         return valueOperations.decrement(realKey);
     }
 
-    public void set(String key, Object value, long expire) {
-        valueOperations.set(key, toJson(value));
-        if (expire != NOT_EXPIRE) {
-            redisTemplate.expire(key, expire, TimeUnit.SECONDS);
-        }
-    }
-
-    public void set(String key, Object value) {
-        set(key, value, DEFAULT_EXPIRE);
-    }
-
-    public <T> T get(String key, Class<T> clazz, long expire) {
-        String value = valueOperations.get(key);
-        if (expire != NOT_EXPIRE) {
-            redisTemplate.expire(key, expire, TimeUnit.SECONDS);
-        }
-        return value == null ? null : fromJson(value, clazz);
-    }
-
-    public <T> T get(String key, Class<T> clazz) {
-        return get(key, clazz, NOT_EXPIRE);
-    }
-
-    public String get(String key, long expire) {
-        String value = valueOperations.get(key);
-        if (expire != NOT_EXPIRE) {
-            redisTemplate.expire(key, expire, TimeUnit.SECONDS);
-        }
-        return value;
-    }
-
-    public String get(String key) {
-        return get(key, NOT_EXPIRE);
-    }
-
-    public void delete(String key) {
-        redisTemplate.delete(key);
-    }
-
     /**
      * Object转成JSON数据
      */
-    private String toJson(Object object) {
-        if (object instanceof Integer || object instanceof Long || object instanceof Float ||
-                object instanceof Double || object instanceof Boolean || object instanceof String) {
-            return String.valueOf(object);
-        }
-        return gson.toJson(object);
-    }
-
-    /**
-     * JSON数据，转成Object
-     */
-    private <T> T fromJson(String json, Class<T> clazz) {
-        return gson.fromJson(json, clazz);
-    }
-
     public <T> String beanToString(T value) {
         if (value == null) {
             return null;
@@ -167,6 +128,9 @@ public class RedisUtil {
 
     }
 
+    /**
+     * JSON数据，转成Object
+     */
     public <T> T stringToBean(String str, Class<T> clazz) {
         if (str == null || str.length() <= 0 || clazz == null) {
             return null;
@@ -181,4 +145,127 @@ public class RedisUtil {
             return JSON.toJavaObject(JSON.parseObject(str), clazz);
         }
     }
+
+    /**
+     * 缓存穿透：缓存和数据库中都没有的数据，而用户不断发起请求，导致数据库压力过大，严重会击垮数据库。
+     * 解决方案：
+     * 1）对查询结果为空的情况也进行缓存，缓存时间设置短一点。
+     * 2）布隆过滤，对所有可能查询的参数以hash形式存储，在控制层先进行校验，不符合则丢弃，从而避免了对底层存储系统的查询压力。
+     */
+    public String getValue(String key) {
+        // 对查询结果为空的情况也进行缓存
+        String value = valueOperations.get(key);
+        if (value != null) {
+            return value;
+        } else {
+            // 数据库查询
+            // value = db.getValue;
+            // if (value == null){
+            //      value = string.Empty;
+            // }
+            // 如果发现为空，设置个默认值，也缓存起来
+            valueOperations.set(key, value, 3000);
+        }
+        return value;
+    }
+
+    public <T> void addByBloomFilter(BloomFilterHelper<T> bloomFilterHelper, String key, T value) {
+        // 根据给定的布隆过滤器添加值
+        Preconditions.checkArgument(bloomFilterHelper != null, "bloomFilterHelper不能为空");
+        int[] offset = bloomFilterHelper.murmurHashOffset(value);
+        for (int i : offset) {
+            redisTemplate.opsForValue().setBit(key, i, true);
+        }
+    }
+
+    public <T> boolean includeByBloomFilter(BloomFilterHelper<T> bloomFilterHelper, String key, T value) {
+        // 根据给定的布隆过滤器判断值是否存在
+        Preconditions.checkArgument(bloomFilterHelper != null, "bloomFilterHelper不能为空");
+        int[] offset = bloomFilterHelper.murmurHashOffset(value);
+        for (int i : offset) {
+            if (!redisTemplate.opsForValue().getBit(key, i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 缓存击穿：一个key对应的数据是个热点数据，每秒都有大量的请求访问他，当这个Key在失效的瞬间，持续的大并发就穿破缓存，直接请求数据库，可能会瞬间把数据库压垮。
+     * 解决方案：
+     * 1）设置热点数据永远不过期。缺点: 占空间，内存消耗大，不能保持数据最新
+     * 2）加互斥锁(mutex key)。缺点: 代码复杂度增大，存在死锁和线程池阻塞的风险
+     */
+    public void persistKey(String key) {
+        // 设置key永远不过期
+        redisTemplate.persist(key);
+    }
+
+    public String get(String key) throws InterruptedException {
+        // 加互斥锁
+        String value = valueOperations.get(key);
+        if (value == null) {
+            if (valueOperations.setIfAbsent(KEY_MUTEX, value, Duration.ofDays(2))) {
+                // value = db.getValue;
+                valueOperations.set(key, value, Duration.ofDays(2));
+                redisTemplate.delete(KEY_MUTEX);
+                return value;
+            } else {
+                Thread.sleep(50);
+                value = valueOperations.get(key);
+            }
+        }
+        return value;
+    }
+
+    /**
+     * 缓存雪崩：当缓存服务器重启或者大量缓存集中在某一个时间段失效，这样在失效的时候，会给后端系统带来很大压力，导致系统崩溃。
+     * 解决方案：
+     * 1）在缓存失效后，通过加锁或者队列来控制读数据库写缓存的线程数量。比如对某个key只允许一个线程查询数据和写缓存，其他线程等待。
+     * 单机的话，可以使用synchronized或者lock来解决，如果是分布式环境，可以是用redis的setnx命令来解决。
+     * 2）设置不同的过期时间，让缓存失效的时间点尽量均匀。
+     */
+    public String getV(String key) {
+        String value = valueOperations.get(key);
+        BloomFilterHelper<String> bloomFilterHelper = null;
+        if (includeByBloomFilter(bloomFilterHelper, key, value)) {
+            if (value != null) {
+                return value;
+            } else {
+                // 双层检测加锁
+                synchronized (this) {
+                    value = valueOperations.get(key);
+                    if (value == null) {
+                        // 取数据库
+                        // value = db.getValue;
+                        if (value != null) {
+                            // 把数据库查询出来的数据放入redis
+                            valueOperations.set(key, value);
+                        } else {
+                            System.out.println("发生缓存穿透");
+                        }
+                    }
+                }
+            }
+        } else {
+            System.out.println("该用户不存在！");
+        }
+        return value;
+    }
+
+    public void expireKey(String key, long time, TimeUnit timeUnit) {
+        // 设置key的生命周期
+        redisTemplate.expire(key, time, timeUnit);
+    }
+
+    public void expireKeyAt(String key, Date date) {
+        // 指定key在指定的日期过期
+        redisTemplate.expireAt(key, date);
+    }
+
+    public long getKeyExpire(String key, TimeUnit timeUnit) {
+        // 查询key的生命周期
+        return redisTemplate.getExpire(key, timeUnit);
+    }
+
 }
